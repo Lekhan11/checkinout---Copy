@@ -13,8 +13,6 @@ function App() {
   const [showRegister, setShowRegister] = useState(false);
 
   // Check if user is already logged in
-  useEffect(() => {
-     checkUser();
     useEffect(() => {
      checkUser();
      const channel = supabase
