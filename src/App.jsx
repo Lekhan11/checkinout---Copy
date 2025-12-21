@@ -22,7 +22,7 @@ function App() {
       {
         event: '*', // INSERT / UPDATE
         schema: 'public',
-        table: 'checkins',
+        table: 'profiles',
       },
       (payload) => {
         console.log('Realtime update:', payload);
