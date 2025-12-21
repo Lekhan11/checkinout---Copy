@@ -15,7 +15,27 @@ function App() {
   // Check if user is already logged in
   useEffect(() => {
      checkUser();
+    useEffect(() => {
+     checkUser();
+     const channel = supabase
+    .channel('checkins-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: '*', // INSERT / UPDATE
+        schema: 'public',
+        table: 'checkins',
+      },
+      (payload) => {
+        console.log('Realtime update:', payload);
+        fetchCheckins(); // 🔥 auto refresh
+      }
+    )
+    .subscribe();
 
+  return () => {
+    supabase.removeChannel(channel);
+  };
     // Listen for auth state changes
     // const { data: authListener } = supabase.auth.onAuthStateChange(
     //   async (event, session) => {
