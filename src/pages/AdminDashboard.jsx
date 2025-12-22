@@ -12,12 +12,10 @@ function AdminDashboard({ profile, onLogout }) {
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [newEmployeeId, setNewEmployeeId] = useState('');
   const [message, setMessage] = useState('');
-  const [filters, setFilters] = useState({
-    date: '',
-    email: ''
-  });
+  const [filters, setFilters] = useState({ date: '', email: '' });
 
-  // Fetch all attendance records with employee details
+  /* ---------------- FETCH FUNCTIONS ---------------- */
+
   const fetchAllAttendance = async () => {
     try {
       const { data, error } = await supabase
@@ -43,7 +41,28 @@ function AdminDashboard({ profile, onLogout }) {
     }
   };
 
-  // Fetch all employees
+  const fetchSingleAttendance = async (id) => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select(`
+        *,
+        profiles (
+          employee_id,
+          name,
+          email
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching single attendance:', error);
+      return null;
+    }
+
+    return data;
+  };
+
   const fetchAllEmployees = async () => {
     try {
       const { data, error } = await supabase
@@ -61,12 +80,94 @@ function AdminDashboard({ profile, onLogout }) {
     }
   };
 
+  /* ---------------- INITIAL LOAD ---------------- */
+
   useEffect(() => {
     fetchAllAttendance();
     fetchAllEmployees();
   }, []);
 
-  // Handle employee ID update
+  /* ---------------- REALTIME (IMPORTANT PART) ---------------- */
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('attendance-admin-live')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'attendance',
+        },
+        async (payload) => {
+          console.log('🟢 Attendance INSERT realtime:', payload.new);
+
+          const fullRecord = await fetchSingleAttendance(payload.new.id);
+          if (!fullRecord) return;
+
+          setAttendanceRecords((prev) => [fullRecord, ...prev]);
+          setFilteredRecords((prev) => [fullRecord, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'attendance',
+        },
+        async (payload) => {
+          console.log('🟡 Attendance UPDATE realtime:', payload.new);
+
+          const fullRecord = await fetchSingleAttendance(payload.new.id);
+          if (!fullRecord) return;
+
+          setAttendanceRecords((prev) =>
+            prev.map((r) => (r.id === fullRecord.id ? fullRecord : r))
+          );
+
+          setFilteredRecords((prev) =>
+            prev.map((r) => (r.id === fullRecord.id ? fullRecord : r))
+          );
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  /* ---------------- FILTER LOGIC ---------------- */
+
+  useEffect(() => {
+    let filtered = [...attendanceRecords];
+
+    if (filters.date) {
+      filtered = filtered.filter((r) => r.date === filters.date);
+    }
+
+    if (filters.email) {
+      filtered = filtered.filter((r) =>
+        r.profiles.email.toLowerCase().includes(filters.email.toLowerCase())
+      );
+    }
+
+    setFilteredRecords(filtered);
+  }, [filters, attendanceRecords]);
+
+  const handleFilterChange = (e) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value });
+  };
+
+  const clearFilters = () => {
+    setFilters({ date: '', email: '' });
+  };
+
+  /* ---------------- EMPLOYEE ID UPDATE ---------------- */
+
   const handleUpdateEmployeeId = async (userId) => {
     setMessage('');
     try {
@@ -103,33 +204,7 @@ function AdminDashboard({ profile, onLogout }) {
     setShowCreateForm(false);
   };
 
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...attendanceRecords];
-
-    if (filters.date) {
-      filtered = filtered.filter(record => record.date === filters.date);
-    }
-
-    if (filters.email) {
-      filtered = filtered.filter(record => 
-        record.profiles.email.toLowerCase().includes(filters.email.toLowerCase())
-      );
-    }
-
-    setFilteredRecords(filtered);
-  }, [filters, attendanceRecords]);
-
-  const handleFilterChange = (e) => {
-    setFilters({
-      ...filters,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const clearFilters = () => {
-    setFilters({ date: '', email: '' });
-  };
+  /* ---------------- UI ---------------- */
 
   return (
     <div className="dashboard">
@@ -306,3 +381,4 @@ function AdminDashboard({ profile, onLogout }) {
 }
 
 export default AdminDashboard;
+
