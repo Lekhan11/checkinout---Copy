@@ -14,7 +14,8 @@ CREATE TABLE profiles (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL CHECK (role IN ('employee', 'admin')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  position TEXT NOT NULL
 );
 
 -- Create attendance table

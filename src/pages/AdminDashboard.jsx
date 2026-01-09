@@ -251,6 +251,7 @@ function AdminDashboard({ profile, onLogout }) {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Position</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -276,6 +277,9 @@ function AdminDashboard({ profile, onLogout }) {
                     <span className={`role-badge role-${employee.role}`}>
                       {employee.role}
                     </span>
+                  </td>
+                  <td>
+                    {employee.position || <span style={{ color: '#999' }}>Not specified</span>}
                   </td>
                   <td>
                     {editingEmployeeId === employee.id ? (
@@ -359,6 +363,7 @@ function AdminDashboard({ profile, onLogout }) {
                 <th>Date</th>
                 <th>Check In</th>
                 <th>Check Out</th>
+                <th>Work Done</th>
               </tr>
             </thead>
             <tbody>
@@ -370,6 +375,7 @@ function AdminDashboard({ profile, onLogout }) {
                   <td>{record.date}</td>
                   <td>{record.check_in || '-'}</td>
                   <td>{record.check_out || '-'}</td>
+                  <td>{record.work_done || '-'}</td>
                 </tr>
               ))}
             </tbody>

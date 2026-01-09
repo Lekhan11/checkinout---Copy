@@ -7,6 +7,7 @@ function CreateEmployee({ onEmployeeCreated }) {
     name: '',
     email: '',
     password: '',
+    position: '',
     role: 'employee'
   });
   const [loading, setLoading] = useState(false);
@@ -44,6 +45,7 @@ function CreateEmployee({ onEmployeeCreated }) {
             employee_id: formData.employee_id || null,
             name: formData.name,
             email: formData.email,
+            position: formData.position,
             role: formData.role
           }
         ]);
@@ -56,6 +58,7 @@ function CreateEmployee({ onEmployeeCreated }) {
         name: '',
         email: '',
         password: '',
+        position: '',
         role: 'employee'
       });
 
@@ -125,6 +128,19 @@ function CreateEmployee({ onEmployeeCreated }) {
             />
           </div>
         </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Position *</label>
+            <input
+              type="text"
+              name="position"
+              value={formData.position}
+              onChange={handleChange}
+              required
+              placeholder="Manager, Developer, etc."
+            />
+          </div>
+
 
         <div className="form-group">
           <label>Role</label>
@@ -132,6 +148,7 @@ function CreateEmployee({ onEmployeeCreated }) {
             <option value="employee">Employee</option>
             <option value="admin">Admin</option>
           </select>
+        </div>
         </div>
 
         {error && <div className="error-message">{error}</div>}
