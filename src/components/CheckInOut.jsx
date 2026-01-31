@@ -1,17 +1,24 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase/client';
 
-function CheckInOut({ userId }) {
+function CheckInOut({ userId , onCheck }) {
   const [todayRecord, setTodayRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [showModal, setShowModal] = useState(false);
+const [workDone, setWorkDone] = useState('');
+
 
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   };
+const openCheckoutModal = () => {
+  setWorkDone('');
+  setShowModal(true);
+};
 
   // Get current time in HH:MM:SS format
   const getCurrentTime = () => {
@@ -71,6 +78,7 @@ function CheckInOut({ userId }) {
       if (error) throw error;
 
       setTodayRecord(data);
+      if (onCheck) onCheck();
       setMessage('Check-in successful!');
     } catch (err) {
       setMessage('Error: ' + err.message);
@@ -79,31 +87,54 @@ function CheckInOut({ userId }) {
     }
   };
 
+
+
   // Handle check-out
-  const handleCheckOut = async () => {
-    setActionLoading(true);
-    setMessage('');
+  const confirmCheckOut = async () => {
+  if (!workDone.trim()) {
+    setMessage('Work details required');
+    return;
+  }
 
-    try {
-      const currentTime = getCurrentTime();
+  setActionLoading(true);
+  setMessage('');
 
-      const { data, error } = await supabase
-        .from('attendance')
-        .update({ check_out: currentTime })
-        .eq('id', todayRecord.id)
-        .select()
-        .single();
+  try {
+    const currentTime = getCurrentTime();
+    console.log("checkout id :", todayRecord.id);
 
-      if (error) throw error;
+    const { data, error } = await supabase
+      .from('attendance')
+      .update({
+        check_out: currentTime,
+        work_done: workDone
+      })
+      .eq('id', todayRecord.id)
+      .select()
+      .single();
 
-      setTodayRecord(data);
-      setMessage('Check-out successful!');
-    } catch (err) {
-      setMessage('Error: ' + err.message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
+    if (error) throw error;
+
+    setTodayRecord(data);
+    if (onCheck) onCheck();
+    setMessage('Check-out successful!');
+    setShowModal(false);
+
+  } catch (err) {
+    setMessage('Error: ' + err.message);
+  } finally {
+    setActionLoading(false);
+  }
+};
+supabase
+  .channel('attendance')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'attendance' },
+    () => fetchTodayRecord()
+  )
+  .subscribe();
+
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -136,13 +167,35 @@ function CheckInOut({ userId }) {
         </button>
 
         <button
-          onClick={handleCheckOut}
+          onClick={openCheckoutModal}
           disabled={!hasCheckedIn || hasCheckedOut || actionLoading}
           className="btn-secondary"
         >
           {actionLoading ? 'Processing...' : 'Check Out'}
         </button>
       </div>
+{showModal && (
+  <div className="modal-overlay">
+    <div className="modal">
+      <h4>Today work details</h4>
+
+      <textarea
+        value={workDone}
+        onChange={(e) => setWorkDone(e.target.value)}
+        placeholder="Enter the details of the work done."
+      />
+
+      <div className="modal-actions">
+        <button onClick={confirmCheckOut} disabled={actionLoading}>
+          Confirm Check Out
+        </button>
+        <button onClick={() => setShowModal(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {message && (
         <div className={message.includes('Error') ? 'error-message' : 'success-message'}>

@@ -8,6 +8,7 @@ function EmployeeDashboard({ user, profile, onLogout }) {
 
   // Fetch employee's attendance history
   const fetchAttendanceHistory = async () => {
+    console.log("Fetching attendance history for user:", user.id);
     try {
       const { data, error } = await supabase
         .from('attendance')
@@ -41,7 +42,7 @@ function EmployeeDashboard({ user, profile, onLogout }) {
         </button>
       </div>
 
-      <CheckInOut userId={user.id} />
+      <CheckInOut userId={user.id} onCheck={fetchAttendanceHistory} />
 
       <div className="attendance-section">
         <h3>My Attendance History</h3>
@@ -56,6 +57,7 @@ function EmployeeDashboard({ user, profile, onLogout }) {
                 <th>Date</th>
                 <th>Check In</th>
                 <th>Check Out</th>
+                <th>Work Done</th>
               </tr>
             </thead>
             <tbody>
@@ -64,6 +66,7 @@ function EmployeeDashboard({ user, profile, onLogout }) {
                   <td>{record.date}</td>
                   <td>{record.check_in || '-'}</td>
                   <td>{record.check_out || '-'}</td>
+                  <td>{record.work_done || '-'}</td>
                 </tr>
               ))}
             </tbody>
